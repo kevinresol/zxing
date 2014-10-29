@@ -8,6 +8,13 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
+import android.util.Log;
+
+import org.haxe.lime.HaxeObject;
+import org.json.JSONObject;
+
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 
 
 /* 
@@ -38,11 +45,25 @@ import android.view.View;
 */
 public class Zxing extends Extension {
 	
+	protected static final String EVENT_SUCCESS = "success";
+	protected static final String EVENT_CANCELLED = "cancelled";
+	protected static HaxeObject handler; // String->String->String->Void (type, contents, formatName)
 	
-	public static int sampleMethod (int inputValue) {
-		
-		return inputValue * 100;
-		
+	public static void init(HaxeObject handler) {
+		Zxing.handler = handler;
+	}
+
+	public static void initiateScan () {
+		Extension.mainActivity.runOnUiThread(new Runnable() {
+			public void run() {
+				IntentIntegrator integrator = new IntentIntegrator(Extension.mainActivity);
+				integrator.addExtra("SCAN_WIDTH", 500);
+		      	integrator.addExtra("SCAN_HEIGHT", 800);
+		      	//integrator.addExtra("RESULT_DISPLAY_DURATION_MS", 3000L);
+		      	integrator.addExtra("PROMPT_MESSAGE", "Custom prompt to scan a product");
+		      	integrator.initiateScan(IntentIntegrator.QR_CODE_TYPES);
+			}
+		});
 	}
 	
 	
@@ -51,8 +72,22 @@ public class Zxing extends Extension {
 	 * you started it with, the resultCode it returned, and any additional data 
 	 * from it.
 	 */
-	public boolean onActivityResult (int requestCode, int resultCode, Intent data) {
+	public boolean onActivityResult (int requestCode, int resultCode, Intent intent) {
 		
+		IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, intent);
+		if (scanResult != null) {
+		    if(handler != null)
+		    {
+		    	if(scanResult.getContents() != null)
+		    		handler.call3("handle", EVENT_SUCCESS, scanResult.getContents(), scanResult.getFormatName());
+		    	else
+		    		handler.call3("handle", EVENT_CANCELLED, "", "");
+		    }
+		    
+		}
+		else {
+
+		}
 		return true;
 		
 	}
